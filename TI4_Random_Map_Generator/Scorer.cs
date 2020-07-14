@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TI4RandomMapGenerator
+namespace TI4_Random_Map_Generator
 {
     public enum ResourceScoreMethod
     {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TI4RandomMapGenerator
+namespace TI4_Random_Map_Generator
 {
     enum GalaxyShape
     {

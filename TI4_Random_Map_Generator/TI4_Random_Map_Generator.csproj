@@ -52,8 +52,16 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="Program_NEW.cs" />
+    <Content Include="Resources\**" />
+    <Compile Include="Galaxy.cs" />
+    <Compile Include="Parallelizer.cs" />
+    <Compile Include="Planet.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scorer.cs" />
+    <Compile Include="Shuffle.cs" />
+    <Compile Include="SystemTile.cs" />
+    <Compile Include="TilesetGenerator.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

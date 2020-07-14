@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TI4RandomMapGenerator
+namespace TI4_Random_Map_Generator
 {
-    class Program
+    class Parallelizer
     {
-        static void Main(string[] args)
+        public void parallelize()
         {
             DateTime start = DateTime.Now;
 
