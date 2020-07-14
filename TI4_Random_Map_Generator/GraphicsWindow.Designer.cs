@@ -1,4 +1,6 @@
-﻿namespace TI4_Random_Map_Generator
+﻿using System.Windows.Forms;
+
+namespace TI4_Random_Map_Generator
 {
     partial class GraphicsWindow
     {

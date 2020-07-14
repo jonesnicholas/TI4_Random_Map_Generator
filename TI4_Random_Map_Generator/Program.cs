@@ -16,7 +16,11 @@ namespace TI4_Random_Map_Generator
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            GraphicsWindow window = new GraphicsWindow();
+            Application.Run(window);
+            Galaxy bestGal = new Galaxy(GalaxyShape.Standard, new Shuffle(), 3, 6);
+            RenderEngine renderer = new RenderEngine();
+            renderer.renderGalaxy(window, bestGal);
         }
     }
 }
