@@ -1,6 +1,6 @@
 ﻿namespace TI4_Random_Map_Generator
 {
-    partial class Form1
+    partial class GraphicsWindow
     {
         /// <summary>
         /// Required designer variable.

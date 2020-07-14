@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace TI4_Random_Map_Generator
 {
-    public partial class Form1 : Form
+    public partial class GraphicsWindow : Form
     {
-        public Form1()
+        public GraphicsWindow()
         {
             InitializeComponent();
         }
