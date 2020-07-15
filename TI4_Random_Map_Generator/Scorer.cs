@@ -62,9 +62,15 @@ namespace TI4_Random_Map_Generator
             List<int> players;
             Dictionary<int, List<SystemTile>> sliceClaim;
             Dictionary<int, List<SystemTile>> sliceContest;
-
-
             (players, sliceClaim, sliceContest) = StakeClaims(galaxy);
+
+            Dictionary<int, double> playerResources = new Dictionary<int, double>();
+            Dictionary<int, double> playerTraitAccess = new Dictionary<int, double>();
+            Dictionary<int, double> stage1ObjectiveAccess;
+            Dictionary<int, double> secretObjectiveAccess = new Dictionary<int, double>();
+            Dictionary<int, double> easiestTraitAccess = new Dictionary<int, double>();
+
+
             if (contestMethod == ContestValue.Slices)
             {
                 resourceScore =
@@ -90,6 +96,9 @@ namespace TI4_Random_Map_Generator
                         claimExponent);
             }
 
+
+            stage1ObjectiveAccess = GetS1Score(galaxy, players, contestMethod);
+
             score = resourceScore;
 
             return score;
@@ -110,6 +119,23 @@ namespace TI4_Random_Map_Generator
             Dictionary<int, List<SystemTile>> sliceContest)
         {
             return 0.0;
+        }
+
+        public Dictionary<int, double> GetS1Score(
+            Galaxy galaxy,
+            List<int> players,
+            ContestValue contestMethod)
+        {
+            Dictionary<int, double> Stage1ViabilityScores = new Dictionary<int, double>();
+            // for each 'slice', determine how 'viable' each map-dependent stage 1 objective is
+
+            // Spend 8 resources
+            // Spend 8 influence
+            // 2 adjacent to Mecatol
+            // 4 of a trait
+            // 3 tech specialties
+
+            return Stage1ViabilityScores;
         }
 
         public double GetResourceScoreClaims(
@@ -309,7 +335,8 @@ namespace TI4_Random_Map_Generator
             int MaxRadius = galaxy.MaxRadius;
             SystemTile[][] tiles = galaxy.tiles;
             List<Tuple<int, int>> HSLocations = galaxy.HSLocations;
-
+            
+            // for each home system (
             foreach (Tuple<int, int> start in HSLocations)
             {
                 SystemTile startTile = tiles[start.Item1][start.Item2];
