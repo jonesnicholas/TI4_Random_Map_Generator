@@ -18,9 +18,10 @@ namespace TI4_Random_Map_Generator
             Application.SetCompatibleTextRenderingDefault(false);
             GraphicsWindow window = new GraphicsWindow();
             RenderEngine renderer = new RenderEngine();
+            Parallelizer parallelizer = new Parallelizer();
             window.renderer = renderer;
-            Shuffle shuffle = new Shuffle();
-            renderer.galaxy = new Galaxy(GalaxyShape.Standard, shuffle, 3, 6);
+            window.parallelizer = parallelizer;
+            renderer.parallelizer = parallelizer;
             Application.Run(window);
         }
     }

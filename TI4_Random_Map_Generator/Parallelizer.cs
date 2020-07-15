@@ -9,22 +9,16 @@ namespace TI4_Random_Map_Generator
 {
     class Parallelizer
     {
-        public void parallelize()
+        public Galaxy bestGal;
+        public double bestScore = double.MinValue;
+
+        public void parallelize(int batchSize = 1000)
         {
             DateTime start = DateTime.Now;
-
-            int batchSize = 1000;
-            double bestScore = double.MinValue;
-            Galaxy bestGal = new Galaxy(GalaxyShape.Standard, new Shuffle(), 3, 6);
-
-            int totalBatches = 0;
+            bestGal = bestGal ?? new Galaxy(GalaxyShape.Standard, new Shuffle(), 3, 6);
             Object winnerLock = new object();
             Shuffle shuffle = new Shuffle();
 
-            int timeLimit = 300;
-
-            while (bestScore < 1.0 && (DateTime.Now - start).TotalSeconds < timeLimit)
-            {
                 Parallel.For(0, batchSize, i =>
                 //for (int i = 0; i < batchSize; i++)
                 {
@@ -41,10 +35,7 @@ namespace TI4_Random_Map_Generator
                             //Debug.WriteLine($"    {genGal.GetTTSString()}");
                         }
                     }
-                    });
-                //}
-                totalBatches++;
-            }
+                });
 
             /*for (int pnum = 1; pnum <= bestGal.players; pnum++)
             {
@@ -83,9 +74,7 @@ namespace TI4_Random_Map_Generator
                 }
                 Debug.Write("\n");
             }*/
-            Debug.WriteLine($"\n{bestGal.GetTTSString()}");
-            
-            Debug.WriteLine($"Done after {totalBatches * batchSize} generations");
+            //Debug.WriteLine($"\n{bestGal.GetTTSString()}");
         }
     }
 }

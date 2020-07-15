@@ -11,29 +11,48 @@ namespace TI4_Random_Map_Generator
 {
     class RenderEngine
     {
+        internal Parallelizer parallelizer;
         public Galaxy galaxy;
+        Dictionary<string, Bitmap> images;
+        double scale = 0.15;
+
+        public RenderEngine()
+        {
+            images = new Dictionary<string, Bitmap>();
+        }
 
         public void render(Form form, PaintEventArgs e)
         {
-            //renderGalaxy(form, e, galaxy);
-            RenderTile(form, e, TilesetGenerator.GetSystemTile(50), 20, 10, small: false);
+            galaxy = parallelizer?.bestGal;
+            renderGalaxy(form, e, galaxy);
+            //RenderTile(form, e, TilesetGenerator.GetSystemTile(50), 20, 10, small: false);
         }
 
         public void renderGalaxy(Form form, PaintEventArgs e, Galaxy galaxy)
         {
-            if (e==null || galaxy==null)
+            if (galaxy == null)
             {
                 return;
             }
-            Debug.WriteLine(Environment.CurrentDirectory);
-            Bitmap bitmap = new Bitmap("..\\..\\Resources\\full\\tile01.png");
-            Graphics dc = e.Graphics;
-            dc.DrawImage(bitmap, 60, 10);
-            Pen RedPen = new Pen(Color.Red, 1);
-            dc.DrawRectangle(RedPen, 10, 10, form.ClientRectangle.Width - 20, form.ClientRectangle.Size.Height - 20);
+            bool small = false;
+            Point tileSize = new Point((int)((small ? 200 : 900) * scale), (int)((small ? 172 : 774) * scale));
+            for (int y = 0; y < galaxy.tiles.Length; y++)
+            {
+                for (int x = 0; x < galaxy.tiles[y].Length; x++)
+                {
+                    SystemTile tile = galaxy.tiles[y][x];
+                    bool isHS = galaxy.HSLocations.Contains(new Tuple<int, int>(x, y));
+                    if (tile.sysNum == 0 && !isHS)
+                    {
+                        continue;
+                    }
+                    Point tilePos = new Point((int)(0.75*tileSize.X)*x, (int)(tileSize.Y*(y + 0.5*(x-3))));
+                    RenderSystemTile(form, e, tile, tilePos.X, tilePos.Y, tileSize.X, tileSize.Y, small);
+                }
+            }
         }
 
-        public void RenderTile(Form form, PaintEventArgs e, SystemTile tile, int x, int y, bool small = false, double scale = 1.0)
+        public void RenderSystemTile(Form form, PaintEventArgs e, SystemTile tile, int x, int y, int w, int h, bool small = false)
         {
             if (e== null || form == null)
             {
@@ -41,23 +60,43 @@ namespace TI4_Random_Map_Generator
                 return;
             }
             string pathString = $"..\\..\\Resources\\" +
-                $"{(small ? "small\\small-" : "full\\")}" +
-                $"tile{(tile.sysNum < 10 ? "0" : "")}{tile.sysNum}.png";
+                $"{(small ? "small\\small-" : "full\\")}";
+
+            if (tile.sysNum == 0 && tile.playerNum != -1)
+            {
+                pathString += "tilehome.png";
+            }
+            else
+            {
+                pathString += $"tile{(tile.sysNum < 10 ? "0" : "")}{tile.sysNum}.png";
+            }
             Bitmap tileImage;
-            try
+            if (images.ContainsKey(pathString))
             {
-                tileImage = new Bitmap(pathString);
+                tileImage = images[pathString];
             }
-            catch(Exception ex)
+            else
             {
-                pathString = $"..\\..\\Resources\\" +
-                $"{(small ? "small\\small-" : "full\\")}" +
-                $"tilebw.png";
-                tileImage = new Bitmap(pathString);
+                try
+                {
+                    tileImage = new Bitmap(pathString);
+                }
+                catch (Exception ex)
+                {
+                    pathString = $"..\\..\\Resources\\" +
+                    $"{(small ? "small\\small-" : "full\\")}" +
+                    $"tilebw.png";
+                    tileImage = new Bitmap(pathString);
+                }
+                images.Add(pathString, tileImage);
             }
-            double w = (small ? 200 : 900) * scale;
-            double h = (small ? 172 : 774) * scale;
-            e.Graphics.DrawImage(tileImage, x, y, (int)w, (int)h);
+            e.Graphics.DrawImage(tileImage, x, y, w, h);
+        }
+
+        public void scroll(double delta)
+        {
+            scale *= Math.Pow(2, delta / 120 / 4);
+            Debug.WriteLine(scale);
         }
     }
 }
