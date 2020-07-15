@@ -45,7 +45,7 @@ namespace TI4_Random_Map_Generator
             return new SystemTile(0, new List<Planet>());
         }
 
-        static SystemTile GetSystemTile(int tileNum)
+        public static SystemTile GetSystemTile(int tileNum)
         {
             List<Planet> planets = GetPlanets(tileNum);
             Anomaly anomaly = GetAnomalyStatus(tileNum);

@@ -12,9 +12,20 @@ namespace TI4_Random_Map_Generator
 {
     public partial class GraphicsWindow : Form
     {
+        internal RenderEngine renderer;
+
         public GraphicsWindow()
         {
             InitializeComponent();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            if (renderer != null)
+            {
+                renderer.render(this, e);
+            }
         }
     }
 }
