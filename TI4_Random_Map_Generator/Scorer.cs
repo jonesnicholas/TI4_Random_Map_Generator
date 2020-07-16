@@ -156,19 +156,19 @@ namespace TI4_Random_Map_Generator
                     if (tile.sysNum > 0 && tile.planets.Count() > 0)
                     {
                         Dictionary<int, double> claims = new Dictionary<int, double>();
-                        foreach (int pnum in tile.claims.Keys)
+                        foreach (int pnum in tile.distClaims.Keys)
                         {
                             switch (contestMethod)
                             {
                                 case ContestValue.Slices:
-                                    if (claims[pnum] == tile.claims.Values.Max())
+                                    if (claims[pnum] == tile.distClaims.Values.Max())
                                     {
                                         // full claim on resources for best claim (or tied)
                                         claims.Add(pnum, 1.0);
                                     }
                                     break;
                                 case ContestValue.ClaimSize:
-                                    if (tile.claims.Values.Min() == 0 && tile.claims.Values.Min() == claims[pnum])
+                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
                                     {
                                         // home systems (distance = 0) are only claimed by owner
                                         // TODO: might be a way to refactor a bit so this check isn't needed
@@ -178,22 +178,22 @@ namespace TI4_Random_Map_Generator
                                     {
                                         // all claims scaled by distance, inverted to a power
                                         // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
-                                        claims.Add(pnum, Math.Pow(tile.claims[pnum], claimExponent));
+                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
                                     }
                                     break;
                                 case ContestValue.TopAndClose:
-                                    if (tile.claims.Values.Min() == 0 && tile.claims.Values.Min() == claims[pnum])
+                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
                                     {
                                         // home systems (distance = 0) are only claimed by owner
                                         // TODO: might be a way to refactor a bit so this check isn't needed
                                         claims.Add(pnum, 1.0);
                                     }
-                                    else if (claims[pnum] < 1.1 * tile.claims.Values.Min())
+                                    else if (claims[pnum] < 1.1 * tile.distClaims.Values.Min())
                                     {
                                         // TODO: Refactor to make 'close' a configurable setting somehow
                                         // all claims scaled by distance, inverted to a power
                                         // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
-                                        claims.Add(pnum, Math.Pow(tile.claims[pnum], claimExponent));
+                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
                                     }
                                     break;
                             }
@@ -217,7 +217,7 @@ namespace TI4_Random_Map_Generator
                                     val = tile.planets.Sum(planet => Math.Max(planet.resources, ResInfRatio * planet.influence));
                                     break;
                             }
-                            tile.adjClaims.Add(claim.Key, claim.Value / claimScale);
+                            tile.strClaims.Add(claim.Key, claim.Value / claimScale);
                             resourceClaims[claim.Key] += val * claim.Value / claimScale;
                         }
                     }
@@ -261,7 +261,7 @@ namespace TI4_Random_Map_Generator
                 SystemTile startTile = tiles[start.Item1][start.Item2];
                 int playerNum = startTile.playerNum;
                 // smaller number claims are better, a player's own home system has claim value 0 for themselves
-                startTile.claims[playerNum] = 0;
+                startTile.distClaims[playerNum] = 0;
                 SortedList<int, List<SystemTile>> adjacent = new SortedList<int, List<SystemTile>>();
                 // start by getting sorted list of all adjacent tiles to HS, sorted by lowest 'distance' first
                 foreach (SystemTile tile in startTile.adjacent)
@@ -306,12 +306,12 @@ namespace TI4_Random_Map_Generator
                     {
                         adjacent.Remove(firstKey);
                     }
-                    if (!closestTile.claims.ContainsKey(playerNum))
+                    if (!closestTile.distClaims.ContainsKey(playerNum))
                     {
-                        closestTile.claims.Add(playerNum, firstKey);
+                        closestTile.distClaims.Add(playerNum, firstKey);
                         foreach (SystemTile next in closestTile.adjacent)
                         {
-                            if (!next.claims.ContainsKey(playerNum))
+                            if (!next.distClaims.ContainsKey(playerNum))
                             {
                                 int walkDist = firstKey;
                                 if (next.anomaly == Anomaly.Nova)

@@ -33,8 +33,8 @@ namespace TI4_Random_Map_Generator
         public Anomaly anomaly;
         public int sysNum;
         public int playerNum = 0;
-        public Dictionary<int, int> claims = new Dictionary<int, int>();
-        public Dictionary<int, double> adjClaims = new Dictionary<int, double>();
+        public Dictionary<int, int> distClaims = new Dictionary<int, int>();
+        public Dictionary<int, double> strClaims = new Dictionary<int, double>();
         public List<int> contestedBy = new List<int>();
 
         public SystemTile(int tileNum, List<Planet> inPlanets, Wormhole wormholeType = Wormhole.None, Anomaly anm = Anomaly.None)
