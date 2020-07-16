@@ -18,7 +18,7 @@ namespace TI4_Random_Map_Generator
             Application.SetCompatibleTextRenderingDefault(false);
             GraphicsWindow window = new GraphicsWindow();
             RenderEngine renderer = new RenderEngine();
-            Parallelizer parallelizer = new Parallelizer();
+            GalaxyCrucible parallelizer = new GalaxyCrucible();
             window.renderer = renderer;
             window.parallelizer = parallelizer;
             renderer.parallelizer = parallelizer;

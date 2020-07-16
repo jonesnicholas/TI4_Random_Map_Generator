@@ -14,7 +14,7 @@ namespace TI4_Random_Map_Generator
     public partial class GraphicsWindow : Form
     {
         internal RenderEngine renderer;
-        internal Parallelizer parallelizer;
+        internal GalaxyCrucible parallelizer;
         readonly Timer frameTimer = new Timer();
 
         public GraphicsWindow()
@@ -47,7 +47,7 @@ namespace TI4_Random_Map_Generator
 
         void HandleApplicationIdle(object sender, EventArgs e)
         {
-            parallelizer.parallelize();
+            parallelizer.generateGalaxies();
             this.Invalidate();
         }
 

@@ -8,11 +8,16 @@ namespace TI4_Random_Map_Generator
 {
     class Shuffle
     {
-        public Random random = new Random();
+        public Random random;
 
         public Shuffle(int seed)
         {
             random = new Random(seed);
+        }
+
+        public Shuffle()
+        {
+            random = new Random();
         }
 
         /// <summary>

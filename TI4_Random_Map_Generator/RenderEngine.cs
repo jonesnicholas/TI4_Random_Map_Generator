@@ -11,7 +11,7 @@ namespace TI4_Random_Map_Generator
 {
     class RenderEngine
     {
-        internal Parallelizer parallelizer;
+        internal GalaxyCrucible parallelizer;
         public Galaxy galaxy;
         Dictionary<string, Bitmap> images;
         double scale = 0.15;
