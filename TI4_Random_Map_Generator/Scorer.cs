@@ -63,21 +63,25 @@ namespace TI4_Random_Map_Generator
             
             StakeClaims(galaxy);
 
-            Dictionary<int, double> playerResources = new Dictionary<int, double>();
+            Dictionary<int, double> playerResources = 
+                GetResourceScoreClaims(
+                    galaxy, 
+                    players, 
+                    resMethod, 
+                    contestMethod, 
+                    ResInfRatio, 
+                    ResScaling, 
+                    claimExponent);
+
             Dictionary<int, double> playerTraitAccess = new Dictionary<int, double>();
             Dictionary<int, double> stage1ObjectiveAccess;
             Dictionary<int, double> secretObjectiveAccess = new Dictionary<int, double>();
             Dictionary<int, double> easiestTraitAccess = new Dictionary<int, double>();
-                
-            resourceScore =
-                GetResourceScoreClaims(
-                    galaxy,
-                    players,
-                    resMethod,
-                    contestMethod,
-                    ResInfRatio,
-                    ResScaling,
-                    claimExponent);
+
+            double minSlice = playerResources.Min(claim => claim.Value);
+            double maxSlice = playerResources.Max(claim => claim.Value);
+
+            resourceScore =  Math.Pow(minSlice / maxSlice, ResScaling);
 
 
             stage1ObjectiveAccess = GetS1Score(galaxy, players, contestMethod);
@@ -85,23 +89,6 @@ namespace TI4_Random_Map_Generator
             score = resourceScore;
 
             return score;
-        }
-
-        /// <summary>
-        /// Scores the galaxy based on distribution of planet traits. 1.0 means all slices have an equally easy time at getting 4/6 of planet traits
-        /// </summary>
-        /// <param name="galaxy">The galaxy to score</param>
-        /// <param name="players">list containing the int identifiers of players</param>
-        /// <param name="sliceClaim">dictionary of the tiles claimed by each player</param>
-        /// <param name="sliceContest">dictionary of the tiles contested by each player</param>
-        /// <returns></returns>
-        public double GetTraitScore(
-            Galaxy galaxy,
-            List<int> players,
-            Dictionary<int, List<SystemTile>> sliceClaim,
-            Dictionary<int, List<SystemTile>> sliceContest)
-        {
-            return 0.0;
         }
 
         public Dictionary<int, double> GetS1Score(
@@ -121,7 +108,7 @@ namespace TI4_Random_Map_Generator
             return Stage1ViabilityScores;
         }
 
-        public double GetResourceScoreClaims(
+        public Dictionary<int, double> GetResourceScoreClaims(
             Galaxy galaxy,
             List<int> players,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
@@ -213,13 +200,21 @@ namespace TI4_Random_Map_Generator
                 }
             }
 
-            double minSlice = resourceClaims.Min(claim => claim.Value);
-            double maxSlice = resourceClaims.Max(claim => claim.Value);
-
-            return Math.Pow(minSlice / maxSlice, ResScaling);
+            return resourceClaims;
         }
 
-
+        /// <summary>
+        /// For the galaxy, fills the 'claims' for each tile for each players, where the claim is the 'distance'
+        /// from their home system to the tile in question. Used for scoring 'slices'
+        /// </summary>
+        /// <param name="galaxy">The Galaxy to stake claims in</param>
+        /// <param name="walk">'distance' for default walk</param>
+        /// <param name="emptyWalk">'distance' for walk through empty space</param>
+        /// <param name="asteroidWalk">'distance' for walk through asteroids</param>
+        /// <param name="novaWalk">'distance' for walk through nova</param>
+        /// <param name="nebulaWalk">'ditance' for walk through nebula</param>
+        /// <param name="riftWalk">'distance' for walk through gravity rift</param>
+        /// <param name="wormWalk">'distance' for walk through wormhole</param>
         public void StakeClaims(
             Galaxy galaxy, 
             int walk = 10, 
