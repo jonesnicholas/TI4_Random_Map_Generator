@@ -170,36 +170,6 @@ namespace TI4_Random_Map_Generator
                 }
             }
         }
-
-        
-
-        public Dictionary<int,List<SystemTile>> GetClaims()
-        {
-            Dictionary<int, List<SystemTile>> allClaims = new Dictionary<int, List<SystemTile>>();
-
-            foreach (Tuple<int, int> start in HSLocations)
-            {
-                SystemTile startTile = tiles[start.Item1][start.Item2];
-                int playerNum = startTile.playerNum;
-                List<SystemTile> claimedTiles = new List<SystemTile>();
-                allClaims.Add(playerNum, claimedTiles);
-            }
-
-            for (int x = 0; x <= MaxRadius * 2; x++)
-            {
-                for (int y = 0; y <= MaxRadius * 2; y++)
-                {
-                    SystemTile tile = tiles[x][y];
-                    foreach (int claimer in tile.contestedBy)
-                    {
-                        allClaims[claimer].Add(tile);
-                    }
-                }
-            }
-
-            return allClaims;
-        }
-
         
 
         public void addElement(List<int> list, int x, int y)
