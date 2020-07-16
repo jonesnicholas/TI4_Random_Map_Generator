@@ -377,6 +377,80 @@ namespace TI4_Random_Map_Generator
         }
 
         /// <summary>
+        /// Sets Strength of claims on systems. Based on selected contest method and exponent of claim strength to distance ratio
+        /// </summary>
+        /// <param name="contestMethod">The method used to determine how to get STR claims from DIST claims</param>
+        /// <param name="claimExponent">The exponent used to determing STR of claims from DIST of claims</param>
+        public void StakeStrClaims(
+            StrContestMethod contestMethod = StrContestMethod.TopAndClose,
+            double claimExponent = -2.0)
+        {
+            ResetStrengthClaims();
+            for (int x = 0; x <= 2 * MaxRadius; x++)
+            {
+                for (int y = 0; y <= 2 * MaxRadius; y++)
+                {
+                    SystemTile tile = tiles[x][y];
+                    if (tile.sysNum > 0 && tile.planets.Count() > 0)
+                    {
+                        Dictionary<int, double> claims = new Dictionary<int, double>();
+                        foreach (int pnum in tile.distClaims.Keys)
+                        {
+                            switch (contestMethod)
+                            {
+                                case StrContestMethod.Slices:
+                                    if (claims[pnum] == tile.distClaims.Values.Max())
+                                    {
+                                        // full claim on resources for best claim (or tied)
+                                        claims.Add(pnum, 1.0);
+                                    }
+                                    break;
+                                case StrContestMethod.ClaimSize:
+                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
+                                    {
+                                        // home systems (distance = 0) are only claimed by owner
+                                        // TODO: might be a way to refactor a bit so this check isn't needed
+                                        claims.Add(pnum, 1.0);
+                                    }
+                                    else
+                                    {
+                                        // all claims scaled by distance, inverted to a power
+                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
+                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
+                                    }
+                                    break;
+                                case StrContestMethod.TopAndClose:
+                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
+                                    {
+                                        // home systems (distance = 0) are only claimed by owner
+                                        // TODO: might be a way to refactor a bit so this check isn't needed
+                                        claims.Add(pnum, 1.0);
+                                    }
+                                    else if (claims[pnum] < 1.1 * tile.distClaims.Values.Min())
+                                    {
+                                        // TODO: Refactor to make 'close' a configurable setting somehow
+                                        // all claims scaled by distance, inverted to a power
+                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
+                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
+                                    }
+                                    break;
+                            }
+                        }
+                        if (claims.Count() == 0)
+                        {
+                            throw new Exception("Every system should have at least one claim, right?");
+                        }
+                        double claimScale = claims.Sum(claim => claim.Value);
+                        foreach (KeyValuePair<int, double> claim in claims)
+                        {
+                            tile.strClaims.Add(claim.Key, claim.Value / claimScale);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Resets the distance claim dictionary for all tiles in galaxy.
         /// </summary>
         public void ResetDistanceClaims()
@@ -396,6 +470,23 @@ namespace TI4_Random_Map_Generator
             {
                 tile.strClaims = new Dictionary<int, double>();
             }
+        }
+
+        /// <summary>
+        /// Gets a list of player int identifiers from the galaxy
+        /// </summary>
+        /// <param name="galaxy">The galaxy to get the player list for</param>
+        /// <returns>A List of ints, representing the player identifiers</returns>
+        public List<int> GetPlayers()
+        {
+            List<int> players = new List<int>();
+            foreach (Tuple<int, int> start in HSLocations)
+            {
+                SystemTile startTile = tiles[start.Item1][start.Item2];
+                int playerNum = startTile.playerNum;
+                players.Add(playerNum);
+            }
+            return players;
         }
     }
 }

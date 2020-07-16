@@ -73,14 +73,12 @@ namespace TI4_Random_Map_Generator
             {
                 return 0.0;
             }
-
-            List<int> players = GetPlayers(galaxy);
             galaxy.StakeDistClaims();
+            galaxy.StakeStrClaims(contestMethod, claimExponent);
 
             Dictionary<int, double> playerResources = 
                 GetResourceScoreClaims(
                     galaxy, 
-                    players, 
                     resMethod, 
                     contestMethod, 
                     ResInfRatio, 
@@ -97,7 +95,7 @@ namespace TI4_Random_Map_Generator
             resourceScore =  Math.Pow(minSlice / maxSlice, ResScaling);
 
 
-            stage1ObjectiveAccess = GetS1Score(galaxy, players, contestMethod);
+            stage1ObjectiveAccess = GetS1Score(galaxy, contestMethod);
 
             score = resourceScore;
 
@@ -107,7 +105,6 @@ namespace TI4_Random_Map_Generator
         // under construction
         public Dictionary<int, double> GetS1Score(
             Galaxy galaxy,
-            List<int> players,
             StrContestMethod contestMethod)
         {
             Dictionary<int, double> Stage1ViabilityScores = new Dictionary<int, double>();
@@ -126,7 +123,6 @@ namespace TI4_Random_Map_Generator
         /// Gets the 'resource score' of each 'slice' avaiable to each player based on their claims in a galaxy
         /// </summary>
         /// <param name="galaxy">The galaxy to get the resource score for</param>
-        /// <param name="players">The players contesting the galaxy</param>
         /// <param name="resMethod">Which method to use to get the 'resource score' of a given system</param>
         /// <param name="contestMethod">Which method to use to convert distance claims into strength claims</param>
         /// <param name="ResInfRatio">ratio of value between resources and influence. e.g. 0.5 means 1 influence is worth 0.5 resources</param>
@@ -134,12 +130,12 @@ namespace TI4_Random_Map_Generator
         /// <returns>A dictionary mapping player ints to the double representing the resource value of their 'claimed' systems</returns>
         public Dictionary<int, double> GetResourceScoreClaims(
             Galaxy galaxy,
-            List<int> players,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
             StrContestMethod contestMethod = StrContestMethod.TopAndClose,
             double ResInfRatio = 1.0,
             double claimExponent = -2.0)
         {
+            List<int> players = galaxy.GetPlayers();
             Dictionary<int, double> resourceClaims = new Dictionary<int, double>();
             foreach (int pnum in players)
             {
@@ -154,55 +150,7 @@ namespace TI4_Random_Map_Generator
                     SystemTile tile = galaxy.tiles[x][y];
                     if (tile.sysNum > 0 && tile.planets.Count() > 0)
                     {
-                        Dictionary<int, double> claims = new Dictionary<int, double>();
-                        foreach (int pnum in tile.distClaims.Keys)
-                        {
-                            switch (contestMethod)
-                            {
-                                case StrContestMethod.Slices:
-                                    if (claims[pnum] == tile.distClaims.Values.Max())
-                                    {
-                                        // full claim on resources for best claim (or tied)
-                                        claims.Add(pnum, 1.0);
-                                    }
-                                    break;
-                                case StrContestMethod.ClaimSize:
-                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
-                                    {
-                                        // home systems (distance = 0) are only claimed by owner
-                                        // TODO: might be a way to refactor a bit so this check isn't needed
-                                        claims.Add(pnum, 1.0);
-                                    }
-                                    else
-                                    {
-                                        // all claims scaled by distance, inverted to a power
-                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
-                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
-                                    }
-                                    break;
-                                case StrContestMethod.TopAndClose:
-                                    if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
-                                    {
-                                        // home systems (distance = 0) are only claimed by owner
-                                        // TODO: might be a way to refactor a bit so this check isn't needed
-                                        claims.Add(pnum, 1.0);
-                                    }
-                                    else if (claims[pnum] < 1.1 * tile.distClaims.Values.Min())
-                                    {
-                                        // TODO: Refactor to make 'close' a configurable setting somehow
-                                        // all claims scaled by distance, inverted to a power
-                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
-                                        claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
-                                    }
-                                    break;
-                            }
-                        }
-                        if (claims.Count() == 0)
-                        {
-                            throw new Exception("Every system should have at least one claim, right?");
-                        }
-                        double claimScale = claims.Sum(claim => claim.Value);
-                        foreach(KeyValuePair<int, double> claim in claims)
+                        foreach(KeyValuePair<int, double> strClaim in tile.strClaims)
                         {
                             double val = 0.0;
                             switch (resMethod)
@@ -216,8 +164,7 @@ namespace TI4_Random_Map_Generator
                                     val = tile.planets.Sum(planet => Math.Max(planet.resources, ResInfRatio * planet.influence));
                                     break;
                             }
-                            tile.strClaims.Add(claim.Key, claim.Value / claimScale);
-                            resourceClaims[claim.Key] += val * claim.Value / claimScale;
+                            resourceClaims[strClaim.Key] += val * strClaim.Value;
                         }
                     }
                 }
@@ -347,23 +294,6 @@ namespace TI4_Random_Map_Generator
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Gets a list of player int identifiers from the galaxy
-        /// </summary>
-        /// <param name="galaxy">The galaxy to get the player list for</param>
-        /// <returns>A List of ints, representing the player identifiers</returns>
-        public List<int> GetPlayers(Galaxy galaxy)
-        {
-            List<int> players = new List<int>();
-            foreach (Tuple<int, int> start in galaxy.HSLocations)
-            {
-                SystemTile startTile = galaxy.tiles[start.Item1][start.Item2];
-                int playerNum = startTile.playerNum;
-                players.Add(playerNum);
-            }
-            return players;
         }
     }
 }
