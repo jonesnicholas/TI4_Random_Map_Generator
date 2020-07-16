@@ -29,7 +29,7 @@ namespace TI4_Random_Map_Generator
                 Parallel.For(0, batchSize, i =>
                 {
                     Galaxy genGal = new Galaxy(GalaxyShape.Standard, 3, 6, shuffle);
-                    genGal.score = new Scorer().scoreGalaxy(genGal, contestMethod: ContestValue.ClaimSize);
+                    genGal.score = new Scorer().scoreGalaxy(genGal, contestMethod: StrContestMethod.ClaimSize);
                     lock (scoreCheckLock)
                     {
                         if (genGal.score > bestScore)
@@ -48,7 +48,7 @@ namespace TI4_Random_Map_Generator
                 for (int i = 0; i < batchSize; i++)
                 {
                     Galaxy genGal = new Galaxy(GalaxyShape.Standard, 3, 6, shuffle);
-                    genGal.score = new Scorer().scoreGalaxy(genGal, contestMethod: ContestValue.ClaimSize);
+                    genGal.score = new Scorer().scoreGalaxy(genGal, contestMethod: StrContestMethod.ClaimSize);
                     if (genGal.score > bestScore)
                     {
                         bestScore = genGal.score;

@@ -15,7 +15,7 @@ namespace TI4_Random_Map_Generator
         MaxVal, // slices are scored based on Max(res, inf) equality
     }
 
-    public enum ContestValue
+    public enum StrContestMethod
     {
         Slices, // systems are divided equally amongs those players tied for best claim
         ClaimSize, // systems are divided proportionally based on how good a claim is (e.g. twice as good a claim -> twice the value from the system)
@@ -46,7 +46,7 @@ namespace TI4_Random_Map_Generator
             int HoleCount = 2,
             bool hardHoleLimit = true,
             bool allowAdjacentHoles = false,
-            ContestValue contestMethod = ContestValue.ClaimSize,
+            StrContestMethod contestMethod = StrContestMethod.ClaimSize,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
             double ResInfRatio = 1.0,
             double ResScaling = 2.0,
@@ -108,7 +108,7 @@ namespace TI4_Random_Map_Generator
         public Dictionary<int, double> GetS1Score(
             Galaxy galaxy,
             List<int> players,
-            ContestValue contestMethod)
+            StrContestMethod contestMethod)
         {
             Dictionary<int, double> Stage1ViabilityScores = new Dictionary<int, double>();
             // for each 'slice', determine how 'viable' each map-dependent stage 1 objective is
@@ -136,7 +136,7 @@ namespace TI4_Random_Map_Generator
             Galaxy galaxy,
             List<int> players,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
-            ContestValue contestMethod = ContestValue.TopAndClose,
+            StrContestMethod contestMethod = StrContestMethod.TopAndClose,
             double ResInfRatio = 1.0,
             double claimExponent = -2.0)
         {
@@ -159,14 +159,14 @@ namespace TI4_Random_Map_Generator
                         {
                             switch (contestMethod)
                             {
-                                case ContestValue.Slices:
+                                case StrContestMethod.Slices:
                                     if (claims[pnum] == tile.distClaims.Values.Max())
                                     {
                                         // full claim on resources for best claim (or tied)
                                         claims.Add(pnum, 1.0);
                                     }
                                     break;
-                                case ContestValue.ClaimSize:
+                                case StrContestMethod.ClaimSize:
                                     if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
                                     {
                                         // home systems (distance = 0) are only claimed by owner
@@ -180,7 +180,7 @@ namespace TI4_Random_Map_Generator
                                         claims.Add(pnum, Math.Pow(tile.distClaims[pnum], claimExponent));
                                     }
                                     break;
-                                case ContestValue.TopAndClose:
+                                case StrContestMethod.TopAndClose:
                                     if (tile.distClaims.Values.Min() == 0 && tile.distClaims.Values.Min() == claims[pnum])
                                     {
                                         // home systems (distance = 0) are only claimed by owner
