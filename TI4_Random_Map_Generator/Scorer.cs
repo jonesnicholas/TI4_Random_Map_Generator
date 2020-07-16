@@ -24,13 +24,28 @@ namespace TI4_Random_Map_Generator
 
     class Scorer
     {
+        // TODO: Consider passing in scoring parameters as one single 'Parameters' object (?)
+        // Otherwise as more scoring parameters are added in, this signature is going to get *Massive*
+        /// <summary>
+        /// Calculates the 'score' of a galaxy. 
+        /// </summary>
+        /// <param name="galaxy">The galaxy to score</param>
+        /// <param name="bothHoles">If the galaxy should include both wormhole types</param>
+        /// <param name="HoleCount">Desired wormhole count</param>
+        /// <param name="hardHoleLimit">If the wormhole count is a strict limit (==)</param>
+        /// <param name="allowAdjacentHoles">If an alpha wormhole can be placed next to a beta wormhole</param>
+        /// <param name="contestMethod">Method used to convert distance claims into strength claims</param>
+        /// <param name="resMethod">Method used to calculate a 'slice' resource value</param>
+        /// <param name="ResInfRatio">ratio of value between resources and influence. e.g. 0.5 means 1 influence is worth 0.5 resources</param>
+        /// <param name="ResScaling">Scales differences between most and least resource rich slices</param>
+        /// <param name="claimExponent">The exponent to use when converting distance claims to strength claims. -2 by default, negative recommended</param>
+        /// <returns>A double representing the 'fairness' of the galaxy, scored from 0.0 'unsuitable' to 1.0 'perfectly fair & symmetric'</returns>
         public double scoreGalaxy(
             Galaxy galaxy,
             bool bothHoles = true,
-            bool hardHoleLimit = true,
             int HoleCount = 2,
+            bool hardHoleLimit = true,
             bool allowAdjacentHoles = false,
-            bool allowAdjacentAnomalies = false,
             ContestValue contestMethod = ContestValue.ClaimSize,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
             double ResInfRatio = 1.0,
@@ -46,15 +61,15 @@ namespace TI4_Random_Map_Generator
 
             if (!wormholesOK(
                 galaxy,
+                HoleCount,
                 bothHoles,
                 hardHoleLimit,
-                HoleCount,
                 allowAdjacentHoles))
             {
                 return 0.0;
             }
 
-            if (!AnomaliesOK(galaxy, allowAdjacentAnomalies))
+            if (!AnomaliesOK(galaxy))
             {
                 return 0.0;
             }
@@ -70,7 +85,6 @@ namespace TI4_Random_Map_Generator
                     resMethod, 
                     contestMethod, 
                     ResInfRatio, 
-                    ResScaling, 
                     claimExponent);
 
             Dictionary<int, double> playerTraitAccess = new Dictionary<int, double>();
@@ -91,6 +105,7 @@ namespace TI4_Random_Map_Generator
             return score;
         }
 
+        // under construction
         public Dictionary<int, double> GetS1Score(
             Galaxy galaxy,
             List<int> players,
@@ -108,13 +123,22 @@ namespace TI4_Random_Map_Generator
             return Stage1ViabilityScores;
         }
 
+        /// <summary>
+        /// Gets the 'resource score' of each 'slice' avaiable to each player based on their claims in a galaxy
+        /// </summary>
+        /// <param name="galaxy">The galaxy to get the resource score for</param>
+        /// <param name="players">The players contesting the galaxy</param>
+        /// <param name="resMethod">Which method to use to get the 'resource score' of a given system</param>
+        /// <param name="contestMethod">Which method to use to convert distance claims into strength claims</param>
+        /// <param name="ResInfRatio">ratio of value between resources and influence. e.g. 0.5 means 1 influence is worth 0.5 resources</param>
+        /// <param name="claimExponent">The exponent to use when converting distance claims to strength claims. -2 by default, negative recommended</param>
+        /// <returns>A dictionary mapping player ints to the double representing the resource value of their 'claimed' systems</returns>
         public Dictionary<int, double> GetResourceScoreClaims(
             Galaxy galaxy,
             List<int> players,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
             ContestValue contestMethod = ContestValue.TopAndClose,
             double ResInfRatio = 1.0,
-            double ResScaling = 2.0,
             double claimExponent = -2.0)
         {
             Dictionary<int, double> resourceClaims = new Dictionary<int, double>();
@@ -188,7 +212,7 @@ namespace TI4_Random_Map_Generator
                                     val = tile.GetResources() + ResInfRatio * tile.GetInfluence();
                                     break;
                                 case ResourceScoreMethod.Separate:
-                                    throw new Exception("Not supporting \"separate\" for claim method");
+                                    throw new Exception("Not yet supporting \"separate\" for claim method");
                                 case ResourceScoreMethod.MaxVal:
                                     val = tile.planets.Sum(planet => Math.Max(planet.resources, ResInfRatio * planet.influence));
                                     break;
@@ -212,7 +236,7 @@ namespace TI4_Random_Map_Generator
         /// <param name="emptyWalk">'distance' for walk through empty space</param>
         /// <param name="asteroidWalk">'distance' for walk through asteroids</param>
         /// <param name="novaWalk">'distance' for walk through nova</param>
-        /// <param name="nebulaWalk">'ditance' for walk through nebula</param>
+        /// <param name="nebulaWalk">'distance' for walk through nebula</param>
         /// <param name="riftWalk">'distance' for walk through gravity rift</param>
         /// <param name="wormWalk">'distance' for walk through wormhole</param>
         public void StakeClaims(
@@ -332,11 +356,20 @@ namespace TI4_Random_Map_Generator
             // at this point, all tiles should have a 'distance' value corresponding to each player
         }
 
+        /// <summary>
+        /// Determines if the wormhole placement of the current galaxy meets minimum criteria
+        /// </summary>
+        /// <param name="galaxy">The galaxy to check</param>
+        /// <param name="HoleCount">set the minimum number of wormholes to be present (for each, if bothHoles is on)</param>
+        /// <param name="bothHoles">set if both alpha and beta wormholes need to be present</param>
+        /// <param name="hardHoleLimit">set if hole count needs to be exact</param>
+        /// <param name="allowAdjacentHoles">set if an alpha wormhole is allowed to be adjacent to a beta wormhole</param>
+        /// <returns>true if wormhole criteria met, otherwise false</returns>
         public bool wormholesOK(
             Galaxy galaxy,
+            int HoleCount = 2,
             bool bothHoles = true,
             bool hardHoleLimit = true,
-            int HoleCount = 2,
             bool allowAdjacentHoles = false)
         {
             int MaxRadius = galaxy.MaxRadius;
@@ -359,6 +392,8 @@ namespace TI4_Random_Map_Generator
                     }
                 }
             }
+            // this block checks to see if any tiles are 'adjacent twice'. (caused by two wormholes of same type being naturally adjacent)
+            // since this is not allowed, we return false
             for (int x = 0; x <= MaxRadius * 2; x++)
             {
                 for (int y = 0; y <= MaxRadius * 2; y++)
@@ -369,6 +404,7 @@ namespace TI4_Random_Map_Generator
                     }
                 }
             }
+
             if (bothHoles && alphaCount == 0 && betaCount == 0)
             {
                 return false;
@@ -377,10 +413,15 @@ namespace TI4_Random_Map_Generator
             {
                 return false;
             }
+            if (bothHoles && alphaCount + betaCount < HoleCount)
+            {
+                return false;
+            }
             if (alphaCount < HoleCount || betaCount < HoleCount)
             {
                 return false;
             }
+
             if (!allowAdjacentHoles)
             {
                 for (int x = 0; x <= MaxRadius * 2; x++)
@@ -405,29 +446,28 @@ namespace TI4_Random_Map_Generator
             return true;
         }
 
-        public bool AnomaliesOK(
-            Galaxy galaxy, 
-            bool allowAdjacentAnomalies = false
-            )
+        /// <summary>
+        /// Checks if any anomalies are next to each other, and returns false if so, since this is not allowed
+        /// </summary>
+        /// <param name="galaxy">The galaxy to check</param>
+        /// <returns>false if any anomalies adjacent, otherwise true</returns>
+        public bool AnomaliesOK(Galaxy galaxy)
         {
             int MaxRadius = galaxy.MaxRadius;
             SystemTile[][] tiles = galaxy.tiles;
 
-            if (!allowAdjacentAnomalies)
+            for (int x = 0; x <= MaxRadius * 2; x++)
             {
-                for (int x = 0; x <= MaxRadius * 2; x++)
+                for (int y = 0; y <= MaxRadius * 2; y++)
                 {
-                    for (int y = 0; y <= MaxRadius * 2; y++)
+                    SystemTile tile = tiles[x][y];
+                    if (tile.anomaly != Anomaly.None)
                     {
-                        SystemTile tile = tiles[x][y];
-                        if (tile.anomaly != Anomaly.None)
+                        foreach (SystemTile adj in tile.adjacent)
                         {
-                            foreach (SystemTile adj in tile.adjacent)
+                            if (adj.anomaly != Anomaly.None)
                             {
-                                if (adj.anomaly != Anomaly.None)
-                                {
-                                    return false;
-                                }
+                                return false;
                             }
                         }
                     }
@@ -437,19 +477,11 @@ namespace TI4_Random_Map_Generator
             return true;
         }
 
-        public double sliceVal(List<SystemTile> claimed, List<SystemTile> contested, bool res)
-        {
-            double value = claimed.Select(
-                tile => tile.GetVal(res))
-                .Aggregate((i, j) => i + j);
-
-            value += contested.Select(
-                tile => (double)tile.GetVal(res) / tile.contestedBy.Count())
-                .Aggregate((i, j) => i + j);
-
-            return value;
-        }
-
+        /// <summary>
+        /// Gets a list of player int identifiers from the galaxy
+        /// </summary>
+        /// <param name="galaxy">The galaxy to get the player list for</param>
+        /// <returns>A List of ints, representing the player identifiers</returns>
         public List<int> GetPlayers(Galaxy galaxy)
         {
             List<int> players = new List<int>();
