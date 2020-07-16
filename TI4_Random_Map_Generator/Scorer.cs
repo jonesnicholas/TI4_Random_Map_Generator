@@ -75,8 +75,7 @@ namespace TI4_Random_Map_Generator
             }
 
             List<int> players = GetPlayers(galaxy);
-            
-            StakeClaims(galaxy);
+            galaxy.StakeDistClaims();
 
             Dictionary<int, double> playerResources = 
                 GetResourceScoreClaims(
@@ -227,134 +226,7 @@ namespace TI4_Random_Map_Generator
             return resourceClaims;
         }
 
-        /// <summary>
-        /// For the galaxy, fills the 'claims' for each tile for each players, where the claim is the 'distance'
-        /// from their home system to the tile in question. Used for scoring 'slices'
-        /// </summary>
-        /// <param name="galaxy">The Galaxy to stake claims in</param>
-        /// <param name="walk">'distance' for default walk</param>
-        /// <param name="emptyWalk">'distance' for walk through empty space</param>
-        /// <param name="asteroidWalk">'distance' for walk through asteroids</param>
-        /// <param name="novaWalk">'distance' for walk through nova</param>
-        /// <param name="nebulaWalk">'distance' for walk through nebula</param>
-        /// <param name="riftWalk">'distance' for walk through gravity rift</param>
-        /// <param name="wormWalk">'distance' for walk through wormhole</param>
-        public void StakeClaims(
-            Galaxy galaxy, 
-            int walk = 10, 
-            int emptyWalk = 11,
-            int asteroidWalk = 13, 
-            int novaWalk = 100,
-            int nebulaWalk = 20,
-            int riftWalk = 08, 
-            int wormWalk = 12)
-        {
-            int MaxRadius = galaxy.MaxRadius;
-            SystemTile[][] tiles = galaxy.tiles;
-            List<Tuple<int, int>> HSLocations = galaxy.HSLocations;
-            
-            // for each home system (and therefore each player) determine how 'far' they are from each tile.
-            // 'distances' are weighted by tile type, e.g. a system two tiles away with a planet in between is 
-            // 'closer' than the same setup where the middle tile is a nebula
-            foreach (Tuple<int, int> start in HSLocations)
-            {
-                SystemTile startTile = tiles[start.Item1][start.Item2];
-                int playerNum = startTile.playerNum;
-                // smaller number claims are better, a player's own home system has claim value 0 for themselves
-                startTile.distClaims[playerNum] = 0;
-                SortedList<int, List<SystemTile>> adjacent = new SortedList<int, List<SystemTile>>();
-                // start by getting sorted list of all adjacent tiles to HS, sorted by lowest 'distance' first
-                foreach (SystemTile tile in startTile.adjacent)
-                {
-                    int walkDist = walk;
-                    if (tile.anomaly == Anomaly.Nova)
-                    {
-                        walkDist = novaWalk;
-                    }
-                    else if (tile.anomaly == Anomaly.Nebula)
-                    {
-                        walkDist = nebulaWalk;
-                    }
-                    else if (tile.anomaly == Anomaly.Asteroids)
-                    {
-                        walkDist = asteroidWalk;
-                    }
-                    else if (tile.anomaly == Anomaly.Rift)
-                    {
-                        walkDist = riftWalk;
-                    }
-                    else if (tile.planets.Count() == 0)
-                    {
-                        walkDist = emptyWalk;
-                    }
-                    if (!adjacent.ContainsKey(walkDist))
-                    {
-                        adjacent.Add(walkDist, new List<SystemTile>());
-                    }
-                    adjacent[walkDist].Add(tile);
-                }
-
-                //dijkstra's (?) to find 'shortest path' from HS to all tiles on the board
-                while (adjacent.Count() > 0)
-                {
-                    IList<int> keys = adjacent.Keys;
-                    int firstKey = keys.First();
-                    List<SystemTile> firstList = adjacent[firstKey];
-                    SystemTile closestTile = firstList.First();
-                    firstList.Remove(closestTile);
-                    if (firstList.Count() == 0)
-                    {
-                        adjacent.Remove(firstKey);
-                    }
-                    if (!closestTile.distClaims.ContainsKey(playerNum))
-                    {
-                        closestTile.distClaims.Add(playerNum, firstKey);
-                        foreach (SystemTile next in closestTile.adjacent)
-                        {
-                            if (!next.distClaims.ContainsKey(playerNum))
-                            {
-                                int walkDist = firstKey;
-                                if (next.anomaly == Anomaly.Nova)
-                                {
-                                    walkDist += novaWalk;
-                                }
-                                else if (next.anomaly == Anomaly.Nebula)
-                                {
-                                    walkDist += nebulaWalk;
-                                }
-                                else if (next.anomaly == Anomaly.Asteroids)
-                                {
-                                    walkDist += asteroidWalk;
-                                }
-                                else if (next.anomaly.HasFlag(Anomaly.Rift))
-                                {
-                                    walkDist += riftWalk;
-                                }
-                                else if ((closestTile.wormholes & next.wormholes) != Wormhole.None)
-                                {
-                                    walkDist += wormWalk;
-                                }
-                                else if (next.planets.Count() == 0)
-                                {
-                                    walkDist += emptyWalk;
-                                }
-                                else
-                                {
-                                    walkDist += walk;
-                                }
-                                if (!adjacent.ContainsKey(walkDist))
-                                {
-                                    adjacent.Add(walkDist, new List<SystemTile>());
-                                }
-                                adjacent[walkDist].Add(next);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // at this point, all tiles should have a 'distance' value corresponding to each player
-        }
+        
 
         /// <summary>
         /// Determines if the wormhole placement of the current galaxy meets minimum criteria
