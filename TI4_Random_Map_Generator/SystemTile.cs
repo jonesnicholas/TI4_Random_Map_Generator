@@ -35,8 +35,6 @@ namespace TI4_Random_Map_Generator
         public int playerNum = 0;
         public Dictionary<int, int> claims = new Dictionary<int, int>();
         public Dictionary<int, double> adjClaims = new Dictionary<int, double>();
-        public int bestClaim = int.MaxValue;
-        public int secondBestClaim = int.MaxValue;
         public List<int> contestedBy = new List<int>();
 
         public SystemTile(int tileNum, List<Planet> inPlanets, Wormhole wormholeType = Wormhole.None, Anomaly anm = Anomaly.None)

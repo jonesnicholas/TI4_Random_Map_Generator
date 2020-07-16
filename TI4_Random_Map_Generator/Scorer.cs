@@ -19,7 +19,7 @@ namespace TI4_Random_Map_Generator
     {
         Slices, // systems are divided equally amongs those players tied for best claim
         ClaimSize, // systems are divided proportionally based on how good a claim is (e.g. twice as good a claim -> twice the value from the system)
-        TopAndRunnerUp, // same as claim size, but only those tied for best claim, and those tied for next highest claim have valid claims
+        TopAndClose, // same as claim size, but only those tied for best claim, and those 'close' have valid claims
     }
 
     class Scorer
@@ -59,42 +59,25 @@ namespace TI4_Random_Map_Generator
                 return 0.0;
             }
 
-            List<int> players;
-            Dictionary<int, List<SystemTile>> sliceClaim;
-            Dictionary<int, List<SystemTile>> sliceContest;
-            (players, sliceClaim, sliceContest) = StakeClaims(galaxy);
+            List<int> players = GetPlayers(galaxy);
+            
+            StakeClaims(galaxy);
 
             Dictionary<int, double> playerResources = new Dictionary<int, double>();
             Dictionary<int, double> playerTraitAccess = new Dictionary<int, double>();
             Dictionary<int, double> stage1ObjectiveAccess;
             Dictionary<int, double> secretObjectiveAccess = new Dictionary<int, double>();
             Dictionary<int, double> easiestTraitAccess = new Dictionary<int, double>();
-
-
-            if (contestMethod == ContestValue.Slices)
-            {
-                resourceScore =
-                    GetResourceScoreSlice(
-                        galaxy,
-                        players,
-                        sliceClaim,
-                        sliceContest,
-                        resMethod,
-                        ResInfRatio,
-                        ResScaling);
-            }
-            else
-            {
-                resourceScore =
-                    GetResourceScoreClaims(
-                        galaxy,
-                        players,
-                        resMethod,
-                        contestMethod,
-                        ResInfRatio,
-                        ResScaling,
-                        claimExponent);
-            }
+                
+            resourceScore =
+                GetResourceScoreClaims(
+                    galaxy,
+                    players,
+                    resMethod,
+                    contestMethod,
+                    ResInfRatio,
+                    ResScaling,
+                    claimExponent);
 
 
             stage1ObjectiveAccess = GetS1Score(galaxy, players, contestMethod);
@@ -142,7 +125,7 @@ namespace TI4_Random_Map_Generator
             Galaxy galaxy,
             List<int> players,
             ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
-            ContestValue contestMethod = ContestValue.TopAndRunnerUp,
+            ContestValue contestMethod = ContestValue.TopAndClose,
             double ResInfRatio = 1.0,
             double ResScaling = 2.0,
             double claimExponent = -2.0)
@@ -167,28 +150,38 @@ namespace TI4_Random_Map_Generator
                             switch (contestMethod)
                             {
                                 case ContestValue.Slices:
-                                    if (claims[pnum] == tile.bestClaim)
+                                    if (claims[pnum] == tile.claims.Values.Max())
                                     {
+                                        // full claim on resources for best claim (or tied)
                                         claims.Add(pnum, 1.0);
                                     }
                                     break;
                                 case ContestValue.ClaimSize:
-                                    if (tile.bestClaim > 0)
+                                    if (tile.claims.Values.Min() == 0 && tile.claims.Values.Min() == claims[pnum])
                                     {
+                                        // home systems (distance = 0) are only claimed by owner
+                                        // TODO: might be a way to refactor a bit so this check isn't needed
+                                        claims.Add(pnum, 1.0);
+                                    }
+                                    else
+                                    {
+                                        // all claims scaled by distance, inverted to a power
+                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
                                         claims.Add(pnum, Math.Pow(tile.claims[pnum], claimExponent));
                                     }
-                                    else if (claims[pnum] == tile.bestClaim)
-                                    {
-                                        claims.Add(pnum, 1.0);
-                                    }
                                     break;
-                                case ContestValue.TopAndRunnerUp:
-                                    if (tile.bestClaim == 0 && claims[pnum] == tile.bestClaim)
+                                case ContestValue.TopAndClose:
+                                    if (tile.claims.Values.Min() == 0 && tile.claims.Values.Min() == claims[pnum])
                                     {
+                                        // home systems (distance = 0) are only claimed by owner
+                                        // TODO: might be a way to refactor a bit so this check isn't needed
                                         claims.Add(pnum, 1.0);
                                     }
-                                    else if (claims[pnum] == tile.bestClaim || claims[pnum] == tile.secondBestClaim)
+                                    else if (claims[pnum] < 1.1 * tile.claims.Values.Min())
                                     {
+                                        // TODO: Refactor to make 'close' a configurable setting somehow
+                                        // all claims scaled by distance, inverted to a power
+                                        // e.g. distances 10 and 20 might become claims of 1/10 and 1/20
                                         claims.Add(pnum, Math.Pow(tile.claims[pnum], claimExponent));
                                     }
                                     break;
@@ -226,123 +219,32 @@ namespace TI4_Random_Map_Generator
             return Math.Pow(minSlice / maxSlice, ResScaling);
         }
 
-        public double GetResourceScoreSlice(
-            Galaxy galaxy,
-            List<int> players,
-            Dictionary<int, List<SystemTile>> sliceClaim,
-            Dictionary<int, List<SystemTile>> sliceContest,
-            ResourceScoreMethod resMethod = ResourceScoreMethod.MaxVal,
-            double ResInfRatio = 1.0,
-            double ResScaling = 2.0)
-        {
-            double resourceScore = 0;
-            
-            switch (resMethod)
-            {
-                case ResourceScoreMethod.Separate:
 
-                    double bestRes = double.MinValue;
-                    double worstRes = double.MaxValue;
-
-                    double bestInf = double.MinValue;
-                    double worstInf = double.MaxValue;
-
-                    foreach (int player in players)
-                    {
-                        double res = sliceVal(sliceClaim[player], sliceContest[player], res: true);
-
-                        bestRes = res > bestRes ? res : bestRes;
-                        worstRes = res < worstRes ? res : worstRes;
-
-                        double inf = sliceVal(sliceClaim[player], sliceContest[player], res: false);
-
-                        bestInf = inf > bestInf ? inf : bestInf;
-                        worstInf = inf < worstInf ? inf : worstInf;
-                    }
-
-                    resourceScore =
-                        (Math.Pow(worstRes / bestRes, ResScaling) +
-                        ResInfRatio * Math.Pow(worstInf / bestInf, ResScaling));
-
-                    resourceScore /= (1 + ResInfRatio);
-
-                    break;
-                case ResourceScoreMethod.DirectSum:
-
-                    double best = double.MinValue;
-                    double worst = double.MaxValue;
-                    foreach (int player in players)
-                    {
-                        double resValue = sliceVal(sliceClaim[player], sliceContest[player], res: true);
-                        double infValue = sliceVal(sliceClaim[player], sliceContest[player], res: true);
-
-                        double value = resValue + ResInfRatio * infValue;
-                        best = value > best ? value : best;
-                        worst = value < worst ? value : worst;
-                    }
-                    resourceScore = Math.Pow(worst / best, ResScaling);
-
-                    break;
-                case ResourceScoreMethod.MaxVal:
-                default:
-
-                    double bestVal = double.MinValue;
-                    double worstVal = double.MaxValue;
-
-                    foreach (int player in players)
-                    {
-                        double maxVal = 0;
-                        if (sliceClaim[player].Where(tile => tile.planets.Count > 0).Count() > 0)
-                        {
-                            maxVal +=
-                            sliceClaim[player].Where(tile => tile.planets.Count > 0).Select(tile =>
-                                tile.planets.Select(planet =>
-                                    Math.Max(planet.resources, ResInfRatio * planet.influence)
-                                ).Aggregate((i, j) => i + j)
-                            ).Aggregate((i, j) => i + j);
-                        }
-                        if (sliceContest[player].Where(tile => tile.planets.Count > 0).Count() > 0)
-                        {
-                            maxVal +=
-                            sliceContest[player].Where(tile => tile.planets.Count > 0).Select(tile =>
-                                (double)(tile.planets.Select(planet =>
-                                    Math.Max(planet.resources, ResInfRatio * planet.influence)
-                                ).Aggregate((i, j) => i + j)) / tile.contestedBy.Count()
-                            ).Aggregate((i, j) => i + j);
-                        }
-
-                        bestVal = maxVal > bestVal ? maxVal : bestVal;
-                        worstVal = maxVal < worstVal ? maxVal : worstVal;
-                    }
-
-                    resourceScore = Math.Pow(worstVal / bestVal, ResScaling);
-                    break;
-            }
-
-            return resourceScore;
-        }
-
-        public (List<int>, Dictionary<int,List<SystemTile>>, Dictionary<int,List<SystemTile>>) StakeClaims(
+        public void StakeClaims(
             Galaxy galaxy, 
             int walk = 10, 
             int emptyWalk = 11,
             int asteroidWalk = 13, 
             int novaWalk = 100,
-            int nebulaWalk = 50,
-            int riftWalk = 05, 
+            int nebulaWalk = 20,
+            int riftWalk = 08, 
             int wormWalk = 12)
         {
             int MaxRadius = galaxy.MaxRadius;
             SystemTile[][] tiles = galaxy.tiles;
             List<Tuple<int, int>> HSLocations = galaxy.HSLocations;
             
-            // for each home system (
+            // for each home system (and therefore each player) determine how 'far' they are from each tile.
+            // 'distances' are weighted by tile type, e.g. a system two tiles away with a planet in between is 
+            // 'closer' than the same setup where the middle tile is a nebula
             foreach (Tuple<int, int> start in HSLocations)
             {
                 SystemTile startTile = tiles[start.Item1][start.Item2];
                 int playerNum = startTile.playerNum;
+                // smaller number claims are better, a player's own home system has claim value 0 for themselves
                 startTile.claims[playerNum] = 0;
                 SortedList<int, List<SystemTile>> adjacent = new SortedList<int, List<SystemTile>>();
+                // start by getting sorted list of all adjacent tiles to HS, sorted by lowest 'distance' first
                 foreach (SystemTile tile in startTile.adjacent)
                 {
                     int walkDist = walk;
@@ -373,6 +275,7 @@ namespace TI4_Random_Map_Generator
                     adjacent[walkDist].Add(tile);
                 }
 
+                //dijkstra's (?) to find 'shortest path' from HS to all tiles on the board
                 while (adjacent.Count() > 0)
                 {
                     IList<int> keys = adjacent.Keys;
@@ -431,71 +334,7 @@ namespace TI4_Random_Map_Generator
                 }
             }
 
-            for (int x = 0; x <= MaxRadius * 2; x++)
-            {
-                for (int y = 0; y <= MaxRadius * 2; y++)
-                {
-                    SystemTile tile = tiles[x][y];
-                    if (tile.claims.Count() > 0)
-                    {
-                        tile.bestClaim = tile.claims.Min(claim => claim.Value);
-                        if (tile.claims.Count(claim => claim.Value > tile.bestClaim) > 0)
-                        {
-                            // TODO: no second best claim if > half players have best claim
-                            // TODO: rework code so "top half" of claims are allowed
-                            tile.secondBestClaim = tile.claims.Where(claim => claim.Value > tile.bestClaim).Min(claim => claim.Value);
-                        }
-                    }
-                }
-            }
-
-            Dictionary<int, List<SystemTile>> sliceClaim = new Dictionary<int, List<SystemTile>>();
-            Dictionary<int, List<SystemTile>> sliceContest = new Dictionary<int, List<SystemTile>>();
-
-            List<int> players = new List<int>();
-
-            foreach (Tuple<int, int> start in HSLocations)
-            {
-                SystemTile startTile = tiles[start.Item1][start.Item2];
-                int playerNum = startTile.playerNum;
-                players.Add(playerNum);
-                List<SystemTile> sliceTiles = new List<SystemTile>();
-                List<SystemTile> contestedTiles = new List<SystemTile>();
-
-                for (int x = 0; x <= MaxRadius * 2; x++)
-                {
-                    for (int y = 0; y <= MaxRadius * 2; y++)
-                    {
-                        SystemTile tile = tiles[x][y];
-                        int bestClaim = tile.bestClaim;
-                        if (tile.claims.Count() == 0)
-                        {
-                            continue;
-                        }
-                        int playerClaim = tile.claims[playerNum];
-                        int contesting = tile.claims.Count(claim => claim.Value == bestClaim);
-                        bool playerHasClaim = playerClaim == bestClaim;
-                        bool contestedClaim = contesting > 1;
-                        if (playerHasClaim)
-                        {
-                            tile.contestedBy.Add(playerNum);
-                        }
-                        if (playerHasClaim && contestedClaim)
-                        {
-                            contestedTiles.Add(tile);
-                        }
-                        if (playerHasClaim && !contestedClaim)
-                        {
-                            sliceTiles.Add(tile);
-                        }
-                    }
-                }
-
-                sliceClaim.Add(playerNum, sliceTiles);
-                sliceContest.Add(playerNum, contestedTiles);
-            }
-
-            return (players, sliceClaim, sliceContest);
+            // at this point, all tiles should have a 'distance' value corresponding to each player
         }
 
         public bool wormholesOK(
@@ -616,5 +455,16 @@ namespace TI4_Random_Map_Generator
             return value;
         }
 
+        public List<int> GetPlayers(Galaxy galaxy)
+        {
+            List<int> players = new List<int>();
+            foreach (Tuple<int, int> start in galaxy.HSLocations)
+            {
+                SystemTile startTile = galaxy.tiles[start.Item1][start.Item2];
+                int playerNum = startTile.playerNum;
+                players.Add(playerNum);
+            }
+            return players;
+        }
     }
 }
