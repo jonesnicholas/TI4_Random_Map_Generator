@@ -9,9 +9,9 @@ namespace TI4_Random_Map_Generator
 {
     enum GalaxyShape
     {
-        Standard,
-        ExtraRing,
-        MecatolMegaHex,
+        Standard, // 3 rings around Mecatol, Home systems on outer ring
+        ExtraRing, // 4 rings around Mecatol, Home systems on outer ring
+        MecatolMegaHex, // mecatol 'takes up' 7 tiles, still 3 rings around, but rings are larger
     }
 
     class Galaxy
@@ -22,23 +22,28 @@ namespace TI4_Random_Map_Generator
         public SystemTile[][] tiles;
         public List<Tuple<int,int>> HSLocations;
 
-        public Galaxy(int maxRad, int players = 6)
+        public Galaxy(int maxRad, int playerCount = 6)
         {
-            init(maxRad, players);
+            init(maxRad, playerCount);
         }
 
-        public Galaxy(GalaxyShape shape, Shuffle shuffle, int rad = 3, int players = 6)
+        public Galaxy(GalaxyShape shape, int rad = 3, int playerCount = 6, Shuffle shuffle = null)
         {
             if (shape == GalaxyShape.Standard)
             {
-                init(rad);
-                GenerateStandard(shuffle, rad, players);
+                init(rad, playerCount);
+                GenerateStandard(rad, playerCount, shuffle);
             }
         }
 
-        public void init(int maxRad, int people = 6)
+        /// <summary>
+        /// Initializes a new galaxy. This adds placeholder tiles and initializes data structures.
+        /// </summary>
+        /// <param name="maxRad">The maximum 'radius' of the galaxy.</param>
+        /// <param name="playerCount">The number of players to initialize the galaxy for</param>
+        public void init(int maxRad, int playerCount = 6)
         {
-            players = people;
+            players = playerCount;
             int width = 2 * maxRad + 1;
             tiles = new SystemTile[width][];
             for (int i = 0; i <= 2 * maxRad; i++)
@@ -53,19 +58,16 @@ namespace TI4_Random_Map_Generator
             MaxRadius = maxRad;
         }
 
-        public void GenerateStandard(Shuffle shuffle, int rad, int players = 6)
+        /// <summary>
+        /// Generates a 'standard' galaxy, X rings around Mecatol w/ home systems on outside edge.
+        /// </summary>
+        /// <param name="rad">'radius' of the galaxy to be generated. For this shape, also equals the number of rings around Mecatol</param>
+        /// <param name="players">Number of players in current game</param>
+        /// <param name="shuffle">The 'Shuffle' object used for randomization. Passing one in makes it less likely that seeding weirdness produces identical galaxies</param>
+        public void GenerateStandard(int rad, int players = 6, Shuffle shuffle = null)
         {
-            List<SystemTile> tileset = new List<SystemTile>();
-            int placeableTileCount = 3 * rad * (rad + 1) - players;
-            while (tileset.Count < placeableTileCount)
-            {
-                tileset.AddRange(TilesetGenerator.GetAllTiles());
-            }
-
-            shuffle.ShuffleList<SystemTile>(tileset);
-            tileset = tileset.GetRange(0, placeableTileCount);
-            connectWormholes(tileset);
-
+            // TODO: Set HSLocations for player counts other than 6
+            // TODO: Maybe pull this out as a helper function?
             HSLocations = new List<Tuple<int, int>>();
             if (players == 6)
             {
@@ -76,12 +78,29 @@ namespace TI4_Random_Map_Generator
                 HSLocations.Add(new Tuple<int, int>(2 * rad, 0));
                 HSLocations.Add(new Tuple<int, int>(2 * rad, rad));
             }
-
-            for (int i = 1; i <= players; i ++)
+            // Set player# of HS tiles (used for staking claims & making sure not to put an actual tile in that spot)
+            for (int i = 1; i <= players; i++)
             {
-                Tuple<int, int> tuple = HSLocations[i-1];
+                Tuple<int, int> tuple = HSLocations[i - 1];
                 tiles[tuple.Item1][tuple.Item2].playerNum = i;
             }
+
+            int placeableTileCount = 3 * rad * (rad + 1) - players;
+
+            // TODO: Consider making tileset configurable. For now, just keep adding a full set of game tiles until the required amount is reached.
+            // May require multiple game copies, and/or the expansion.
+            List<SystemTile> tileset = new List<SystemTile>();
+            while (tileset.Count < placeableTileCount)
+            {
+                tileset.AddRange(TilesetGenerator.GetAllTiles());
+            }
+
+            shuffle = shuffle ?? new Shuffle();
+            shuffle.ShuffleList<SystemTile>(tileset);
+            tileset = tileset.GetRange(0, placeableTileCount);
+
+            //TODO: Move this to end, it's inconvenient and weird here and likely to cause problems
+            connectWormholes(tileset);
 
             int width = 2 * rad + 1;
             int index = 0;
@@ -93,21 +112,25 @@ namespace TI4_Random_Map_Generator
                     {
                         if (tiles[x][y].playerNum == 0)
                         {
+                            // for tiles within shape of galaxy that are not Home Systems, assign a tile.
                             tiles[x][y] = tileset[index];
                             index++;
                         }
                     }
                     else if (x == rad && y == rad)
                     {
+                        // "He who controls the Mecatol controls the universe"
                         tiles[x][y] = TilesetGenerator.GetMecatol();
                     }
                     else
                     {
+                        // tiles outside of the galaxy are assigned player number -1
                         tiles[x][y].playerNum = -1;
                     }
                 }
             }
 
+            // make sure that all tiles adjacent to tile 'A' are within 'A's adjacent list
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < width; y++)
@@ -132,8 +155,16 @@ namespace TI4_Random_Map_Generator
                     }
                 }
             }
+
+            // TODO: should connect wormholes here, I think
         }
 
+        // TODO: alter flow such that I don't need to pass in the tile list.
+        // TODO: might have wormholes 'connected' to tiles not in galaxy b/c they weren't selected, fix this
+        /// <summary>
+        /// Sets tiles with complimentary wormhole types as adjacent to each other
+        /// </summary>
+        /// <param name="tiles">The tileset for which wormholes need to be connected</param>
         public static void connectWormholes(List<SystemTile> tiles)
         {
             List<SystemTile> alphas = new List<SystemTile>();
@@ -170,14 +201,12 @@ namespace TI4_Random_Map_Generator
                 }
             }
         }
-        
 
-        public void addElement(List<int> list, int x, int y)
-        {
-            list.Add(tiles[x][y].sysNum);
-            //Debug.WriteLine($"({x},{y}): {tiles[x][y].ToString()}");
-        }
-
+        //TODO: write a method that generates a galaxy from a TTSString
+        /// <summary>
+        /// Gets the TTS map string for this galaxy
+        /// </summary>
+        /// <returns>the TTS string for this galaxy</returns>
         public string GetTTSString()
         {
             List<int> tileNums = new List<int>();
@@ -185,41 +214,41 @@ namespace TI4_Random_Map_Generator
             {
                 int x = 0 + MaxRadius;
                 int y = -r + MaxRadius;
-                addElement(tileNums, x, y);
+                tileNums.Add(tiles[x][y].sysNum);
                 for (int i = 0; i < r; i++)
                 {
                     x++;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
                 for (int i = 0; i < r; i++)
                 {
                     y++;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
                 for (int i = 0; i < r-1; i++)
                 {
                     x--;
                     y++;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
                 x = 0 + MaxRadius;
                 y = r + MaxRadius;
-                addElement(tileNums, x, y);
+                tileNums.Add(tiles[x][y].sysNum);
                 for (int i = 0; i < r; i++)
                 {
                     x--;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
                 for (int i = 0; i < r; i++)
                 {
                     y--;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
                 for (int i = 0; i < r - 1; i++)
                 {
                     x++;
                     y--;
-                    addElement(tileNums, x, y);
+                    tileNums.Add(tiles[x][y].sysNum);
                 }
             }
             List<string> tileStrings = tileNums.Select(num => num <= 0 ? "0" : num.ToString()).ToList();
