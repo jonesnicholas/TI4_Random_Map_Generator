@@ -46,21 +46,28 @@ namespace TI4_Random_Map_Generator
             sysNum = tileNum;
         }
 
+        /// <summary>
+        /// Gets the total resources of all planets in the system
+        /// </summary>
+        /// <returns>The total resources of all planets in the system</returns>
         public int GetResources()
         {
             return planets.Sum(planet => planet.resources);
         }
-
+         
+        /// <summary>
+        /// Gets the total influence of all planets in the system
+        /// </summary>
+        /// <returns>The total influence of all planets in the system</returns>
         public int GetInfluence()
         {
             return planets.Sum(planet => planet.influence);
         }
 
-        public int GetVal(bool res)
-        {
-            return res ? GetResources() : GetInfluence();
-        }
-
+        /// <summary>
+        /// Gets a string summary of the system, useful primarily for debugging
+        /// </summary>
+        /// <returns>If no planets, the 'name' of the system (e.g. Beta Wormhole, Gravity Rift). Otherwise the planet strings separated by ' / '</returns>
         public override string ToString()
         {
             StringBuilder output = new StringBuilder();

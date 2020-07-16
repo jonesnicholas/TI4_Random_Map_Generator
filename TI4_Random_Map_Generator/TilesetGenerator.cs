@@ -8,13 +8,22 @@ namespace TI4_Random_Map_Generator
 {
     class TilesetGenerator
     {
+        /// <summary>
+        /// Gets all tiles (other than HS tiles and Mecatol)
+        /// </summary>
+        /// <returns>a list of all tiles</returns>
         public static List<SystemTile> GetAllTiles()
         {
-            List<SystemTile> tiles = GetBlueTiles();
+            List<SystemTile> tiles = new List<SystemTile>();
+            tiles.AddRange(GetBlueTiles());
             tiles.AddRange(GetRedTiles());
             return tiles;
         }
 
+        /// <summary>
+        /// Gets all 'blue backed' tiles
+        /// </summary>
+        /// <returns>a list of all blue backed tiles</returns>
         public static List<SystemTile> GetBlueTiles()
         {
             List<SystemTile> tiles = new List<SystemTile>();
@@ -25,6 +34,10 @@ namespace TI4_Random_Map_Generator
             return tiles;
         }
 
+        /// <summary>
+        /// Gets all 'red backed' tiles
+        /// </summary>
+        /// <returns>a list of all red backed tiles</returns>
         public static List<SystemTile> GetRedTiles()
         {
             List<SystemTile> tiles = new List<SystemTile>();
@@ -35,16 +48,29 @@ namespace TI4_Random_Map_Generator
             return tiles;
         }
 
+        /// <summary>
+        /// Gets the Mecatol Rex tile
+        /// </summary>
+        /// <returns>Mecatol Rex! The Tile!</returns>
         public static SystemTile GetMecatol()
         {
             return GetSystemTile(18);
         }
 
+        /// <summary>
+        /// Gets a 'blank' tile, for cases where having a null tile might cause problems
+        /// </summary>
+        /// <returns>A 'blank' tile</returns>
         public static SystemTile GetBlankTile()
         {
             return new SystemTile(0, new List<Planet>());
         }
 
+        /// <summary>
+        /// Get the system tile associated with a system number
+        /// </summary>
+        /// <param name="tileNum">The tile number of the system tile to be created</param>
+        /// <returns>The system tile for the given system number</returns>
         public static SystemTile GetSystemTile(int tileNum)
         {
             List<Planet> planets = GetPlanets(tileNum);
@@ -53,6 +79,11 @@ namespace TI4_Random_Map_Generator
             return new SystemTile(tileNum, planets, wormhole, anomaly);
         }
 
+        /// <summary>
+        /// Gets the list of planets associated with the given tile number, if any.
+        /// </summary>
+        /// <param name="tileNum">The tile number to get the planets for</param>
+        /// <returns>A List of the planets associated with a given tile number</returns>
         static List<Planet> GetPlanets(int tileNum)
         {
             List<Planet> planets = new List<Planet>();
@@ -197,6 +228,11 @@ namespace TI4_Random_Map_Generator
             return planets;
         }
 
+        /// <summary>
+        /// Gets the wormholes present in a given tile
+        /// </summary>
+        /// <param name="tileNum">Identifier of the tile to get wormhole status for</param>
+        /// <returns>Wormhole status of the given tile.</returns>
         static Wormhole GetWormholeStatus(int tileNum)
         {
             switch (tileNum)
@@ -214,6 +250,11 @@ namespace TI4_Random_Map_Generator
             return Wormhole.None;
         }
 
+        /// <summary>
+        /// Gets the anomaly present in a given tile, if any
+        /// </summary>
+        /// <param name="tileNum">Identifier of the tile to get anomalies</param>
+        /// <returns>Anomaly present in a given tile</returns>
         static Anomaly GetAnomalyStatus(int tileNum)
         {
             switch (tileNum)

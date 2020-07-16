@@ -15,11 +15,11 @@ namespace TI4_Random_Map_Generator
             random = new Random(seed);
         }
 
-        public Shuffle()
-        {
-
-        }
-
+        /// <summary>
+        /// Given a list of items, randomizes its order
+        /// </summary>
+        /// <typeparam name="T">The type of object held within the list</typeparam>
+        /// <param name="list">The list to be randomized</param>
         public void ShuffleList<T>(List<T> list)
         {
             if (list.Count > 1)

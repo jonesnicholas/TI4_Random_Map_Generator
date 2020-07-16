@@ -40,6 +40,10 @@ namespace TI4_Random_Map_Generator
             name = inName;
         }
 
+        /// <summary>
+        /// Used to make viewing Galaxy info while debugging easier.
+        /// </summary>
+        /// <returns>name(res,inf) e.g. Quann(2,1)</returns>
         public override string ToString()
         {
             return $"{name}({resources},{influence})";
