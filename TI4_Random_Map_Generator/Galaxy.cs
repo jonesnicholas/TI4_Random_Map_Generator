@@ -99,9 +99,6 @@ namespace TI4_Random_Map_Generator
             shuffle.ShuffleList<SystemTile>(tileset);
             tileset = tileset.GetRange(0, placeableTileCount);
 
-            //TODO: Move this to end, it's inconvenient and weird here and likely to cause problems
-            connectWormholes(tileset);
-
             int width = 2 * rad + 1;
             int index = 0;
             for (int x = 0; x < width; x++)
@@ -156,20 +153,20 @@ namespace TI4_Random_Map_Generator
                 }
             }
 
-            // TODO: should connect wormholes here, I think
+            connectWormholes();
         }
 
-        // TODO: alter flow such that I don't need to pass in the tile list.
-        // TODO: might have wormholes 'connected' to tiles not in galaxy b/c they weren't selected, fix this
         /// <summary>
         /// Sets tiles with complimentary wormhole types as adjacent to each other
         /// </summary>
         /// <param name="tiles">The tileset for which wormholes need to be connected</param>
-        public static void connectWormholes(List<SystemTile> tiles)
+        public void connectWormholes()
         {
+            List<SystemTile> galaxyTiles = new List<SystemTile>();
+            galaxyTiles = tiles.SelectMany(row => row).ToList();
             List<SystemTile> alphas = new List<SystemTile>();
             List<SystemTile> betas = new List<SystemTile>();
-            foreach (SystemTile tile in tiles)
+            foreach (SystemTile tile in galaxyTiles)
             {
                 if (tile.wormholes == Wormhole.Alpha)
                 {
